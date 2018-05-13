@@ -2,7 +2,7 @@
 """
 	Author: Annus Zulfiqar
 	Date: 13th May, 2018
-	Usage
+	Usage: python forest.py -i "image_name_in_here"
 """
 
 from __future__ import print_function

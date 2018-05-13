@@ -28,8 +28,8 @@ def main():
 	ret, thresh = cv2.threshold(greenry, 127, 255, cv2.THRESH_OTSU)
 	count = np.count_nonzero(thresh)
 	print("log: {:.2f}% vegetation found!".format(100*count/(thresh.shape[0]*thresh.shape[1])))
-	cv2.imshow("new", thresh)
-	# cv2.imshow("new", np.hstack((image, new)))
+	# cv2.imshow("new", thresh)
+	cv2.imshow("image and change", np.hstack((image, new)))
 	cv2.waitKey(0)
 	pass
 

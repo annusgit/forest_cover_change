@@ -39,7 +39,7 @@ def convert(arr):
     return np.asarray(255/4096*arr).astype(np.int16)
 
 
-def get_data_from_single_folder(path):
+def get_data_from_single_folder(path, analyse_thresh=False):
     rgb_file = os.path.join(path, 'rgb.png')
     enh_veg_file = os.path.join(path, 'enh_veg.png')
     fal_col_file = os.path.join(path, 'fal_col.png')
@@ -55,10 +55,6 @@ def get_data_from_single_folder(path):
         band_images[band] = arr
     pass
 
-    # band_images['red'] = cv2.equalizeHist(band_images['red'])
-    # band_images['green'] = cv2.equalizeHist(band_images['green'])
-    # band_images['blue'] = cv2.equalizeHist(band_images['blue'])
-
     rgb = np.dstack((band_images['red'], band_images['green'], band_images['blue']))
     enhanced_veg = np.dstack((band_images['sh_ir2'], band_images['near_ir'], band_images['green']))
     false_color = np.dstack((band_images['near_ir'], band_images['red'], band_images['green']))
@@ -73,8 +69,9 @@ def get_data_from_single_folder(path):
     ndvi = np.zeros_like(ndvi_)
     ndvi[ndvi_>thresh] = 255
     scipy.misc.imsave(ndvi_file, ndvi)
-    read_images = map(Image.open, [rgb_file, enh_veg_file, fal_col_file, ndvi_file])
-    evaluate_threshold(read_images)
+    if analyse_thresh:
+        read_images = map(Image.open, [rgb_file, enh_veg_file, fal_col_file, ndvi_file])
+        evaluate_threshold(read_images)
 
 
 def evaluate_threshold(images):
@@ -95,13 +92,81 @@ def evaluate_threshold(images):
     pass
 
 
+def directory_interface(path):
+    "basically calls get_data_from_single_folder on each folder in a directory"
+    folders = os.listdir(path)
+    for folder in folders:
+        this_path = os.path.join(path, folder)
+        get_data_from_single_folder(path=this_path)
+        print('log: on {}'.format(folder))
+
+
+def collect_similar_images(path, image_name, destination_folder):
+    "Collect similar images from all the folders and place them in one folder"
+    os.mkdir(destination_folder)
+    folders = os.listdir(path)
+    for folder in folders:
+        this_path = os.path.join(path, folder)
+        image = Image.open(os.path.join(this_path, image_name))
+        scipy.misc.imsave(os.path.join(destination_folder, '{}_{}'.format(folder, image_name)), image)
+
+
+def generate_dataset(images_path, labels_path, test=False):
+    "Save the dataset in the form of a numpy array that we can train on..."
+    examples = os.listdir(images_path)
+    dataset = []
+    labels = []
+    for example in examples:
+        this_example = os.path.join(images_path, example)
+        this_label = os.path.join(labels_path, this_example.split('/')[-1].split('_')[0]+'_ndvi.png')
+        # print()
+        image = np.asarray(Image.open(this_example))
+        label = np.asarray(Image.open(this_label))
+        dataset.append(image)
+        labels.append(label)
+        # print('on example {}'.format(this_example))
+    dataset = np.asarray(dataset)
+    labels = np.asarray(labels)
+    print('log: dataset size = {}, labels size = {}'.format(dataset.shape, labels.shape))
+    if test:
+        test_example = dataset[0,:]
+        test_label = labels[0,:]
+        fig = plt.figure(figsize=(1,2))
+        fig.add_subplot(1, 2, 1)
+        if test_example.ndim == 2:
+            plt.gray()
+        plt.imshow(test_example)
+        plt.axis('off')
+        fig.add_subplot(1, 2, 2)
+        if test_label.ndim == 2:
+            plt.gray()
+        plt.imshow(test_label)
+        plt.axis('off')
+        plt.show()
+
+
 def main():
     path = '/home/annus/Desktop/forest_cover_change/region_3_data/malakand/data/' \
            'espa-annuszulfiqar@gmail.com-07012018-001522-723/untars/LC081510362013041401T1-SC20180701002950'
-    get_data_from_single_folder(path=path)
+    get_data_from_single_folder(path=path, analyse_thresh=True)
+    # path = '/home/annus/Desktop/forest_cover_change/region_3_data/malakand/data/' \
+    #        'espa-annuszulfiqar@gmail.com-07012018-001522-723/untars/'
+    # directory_interface(path=path)
+    # generate_dataset(images_path='/home/annus/Desktop/forest_cover_change/region_3_data/malakand/'
+    #                              'data/espa-annuszulfiqar@gmail.com-07012018-001522-723/ndvi',
+    #                  labels_path='/home/annus/Desktop/forest_cover_change/region_3_data/malakand/'
+    #                              'data/espa-annuszulfiqar@gmail.com-07012018-001522-723/ndvi',
+    #                  test=True)
 
 
 if __name__ == '__main__':
     main()
+
+
+
+
+
+
+
 
 
